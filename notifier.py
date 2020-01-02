@@ -20,10 +20,10 @@ if IFTTT_KEY is None:
     print('You must put your IFTTT private webhook key in a file named private_key or in an environment variable named "IFTTT_KEY"')
     exit()
 
-MAX_DELAY = os.getenv('MAX_DELAY', 600)
-MIN_DELAY = os.getenv('MIN_DELAY', 20)
-NHL = os.getenv('NHL', True)
-ECHL = os.getenv('ECHL', True)
+MAX_DELAY = int(os.getenv('MAX_DELAY', 600))
+MIN_DELAY = int(os.getenv('MIN_DELAY', 20))
+NHL = os.getenv('NHL', 'true').lower() == 'true'
+ECHL = os.getenv('ECHL', 'true').lower() == 'true'
 
 print("IFTTT_KEY: " + IFTTT_KEY)
 print("MAX_DELAY: " + str(MAX_DELAY))
@@ -190,6 +190,7 @@ echl_games = dict()
 
 
 def check_nhl():
+    print("checking nhl")
     try:
         delay = MAX_DELAY
         with urllib.request.urlopen('https://statsapi.web.nhl.com/api/v1/schedule?expand=schedule.linescore') as response:
@@ -233,6 +234,7 @@ def check_nhl():
 
 
 def check_echl():
+    print("checking echl")
     try:
         delay = MAX_DELAY
         preamble = 'angular.callbacks._1i'
@@ -282,6 +284,6 @@ while True:
         delay_for_repeat = min(delay_for_repeat, check_nhl())
     if ECHL:
         delay_for_repeat = min(delay_for_repeat, check_echl())
-    sys.stdout.flush()
     print("delaying for " + str(delay_for_repeat) + " seconds")
+    sys.stdout.flush()
     time.sleep(delay_for_repeat)
