@@ -8,6 +8,7 @@ import urllib.request
 import json
 import time
 import dateutil.parser
+from threading import Timer
 
 try:
     private_file = open('private_key')
@@ -22,14 +23,24 @@ if IFTTT_KEY is None:
 
 MAX_DELAY = int(os.getenv('MAX_DELAY', 600))
 MIN_DELAY = int(os.getenv('MIN_DELAY', 20))
+
 NHL = os.getenv('NHL', 'true').lower() == 'true'
 ECHL = os.getenv('ECHL', 'true').lower() == 'true'
 
-print("IFTTT_KEY: " + IFTTT_KEY)
-print("MAX_DELAY: " + str(MAX_DELAY))
-print("MIN_DELAY: " + str(MIN_DELAY))
-print("NHL: " + str(NHL))
-print("ECHL: " + str(ECHL))
+END_EVENT = os.getenv('END_EVENT', 'turn_off_nanoleaf')
+GOAL_DURATION = int(os.getenv('GOAL_DURATION', 15))
+POWER_PLAY_DURATION = int(os.getenv('POWER_PLAY_DURATION', 5))
+
+END_TIMER = None
+
+print("IFTTT_KEY:", IFTTT_KEY)
+print("MAX_DELAY:", MAX_DELAY)
+print("MIN_DELAY:", MIN_DELAY)
+print("NHL:", NHL)
+print("ECHL:", ECHL)
+print("END_EVENT:", END_EVENT)
+print("GOAL_DURATION:", GOAL_DURATION)
+print("POWER_PLAY_DURATION:", POWER_PLAY_DURATION)
 
 class ECHLGame:
     def __init__(self, home, away, home_score, away_score, started, final):
@@ -126,14 +137,12 @@ class Team:
         print(vars(self))
         preamble = ""
         if self.league != 'nhl':
-            preamble = self.league+"_"
+            preamble = self.league + "_"
         notification = ('https://maker.ifttt.com/trigger/'
                         '{preamble}{team}_score/with/key/{ifttt}'.format(team=self.team_abbr_lower,
                                                                          ifttt=IFTTT_KEY,
                                                                          preamble=preamble))
-        print('Sending', notification)
-        with urllib.request.urlopen(notification) as notify:
-            raw_response = notify.read()
+        self.send(notification, GOAL_DURATION)
 
     def notify_of_power_play(self):
         print('PP', self.team_abbr)
@@ -144,9 +153,29 @@ class Team:
                         '{preamble}{team}_power_play/with/key/{ifttt}'.format(team=self.team_abbr_lower,
                                                                               ifttt=IFTTT_KEY,
                                                                               preamble=preamble))
+        self.send(notification, POWER_PLAY_DURATION)
+
+    def notify_of_end(self):
+        preamble = ""
+        if self.league != 'nhl':
+            preamble = self.league + "_"
+        notification = 'https://maker.ifttt.com/trigger/{event}/with/key/{ifttt}'.format(event=END_EVENT, ifttt=IFTTT_KEY)
+        self.send(notification)
+
+    def send(self, notification, end=None):
         print('Sending', notification)
         with urllib.request.urlopen(notification) as notify:
             raw_response = notify.read()
+        if end:
+            global END_TIMER
+            try:
+                END_TIMER.cancel()
+                print('cancelled existing end timer')
+            except:
+                pass
+            END_TIMER = Timer(end, self.notify_of_end)
+            END_TIMER.start()
+            print('started end timer for ' + str(end) + ' seconds')
 
 
 class NHLTeams:
