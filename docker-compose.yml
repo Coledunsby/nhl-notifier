@@ -1,0 +1,5 @@
+version: '3'
+services:
+  ustvgo:
+    build: .
+    container_name: nhl-notifier

@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import datetime
 import os
 import sys
@@ -7,22 +9,27 @@ import json
 import time
 import dateutil.parser
 
-# You need a file named private_key in order for this to work
 try:
     private_file = open('private_key')
+    IFTTT_KEY = private_file.readline().strip()
+    private_file.close()
 except FileNotFoundError:
-    print('You must put your IFTTT private webhook key in a file named private_key')
+    IFTTT_KEY = os.getenv('IFTTT_KEY')
+
+if IFTTT_KEY is None:
+    print('You must put your IFTTT private webhook key in a file named private_key or in an environment variable named "IFTTT_KEY"')
     exit()
 
-IFTTT_KEY = private_file.readline().strip()
-MAX_DELAY = 600
-MIN_DELAY = 20
+MAX_DELAY = os.getenv('MAX_DELAY', 600)
+MIN_DELAY = os.getenv('MIN_DELAY', 20)
+NHL = os.getenv('NHL', True)
+ECHL = os.getenv('ECHL', True)
 
-NHL = True
-ECHL = True
-
-private_file.close()
-
+print("IFTTT_KEY: " + IFTTT_KEY)
+print("MAX_DELAY: " + str(MAX_DELAY))
+print("MIN_DELAY: " + str(MIN_DELAY))
+print("NHL: " + str(NHL))
+print("ECHL: " + str(ECHL))
 
 class ECHLGame:
     def __init__(self, home, away, home_score, away_score, started, final):
@@ -269,18 +276,12 @@ def check_echl():
         return MIN_DELAY
 
 
-# check_echl()
-
 while True:
     delay_for_repeat = MAX_DELAY
-    # NHL
     if NHL:
         delay_for_repeat = min(delay_for_repeat, check_nhl())
     if ECHL:
         delay_for_repeat = min(delay_for_repeat, check_echl())
     sys.stdout.flush()
+    print("delaying for " + str(delay_for_repeat) + " seconds")
     time.sleep(delay_for_repeat)
-
-
-
-
